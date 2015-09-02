@@ -1,0 +1,530 @@
+
+<html>
+<head>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<script src="d3.v3.min.js"></script>
+<script src="underscore-min.js"></script>
+<script src="spotify.js"></script>
+
+
+
+
+
+<style>
+
+body {
+  font: 4px sans-serif;
+  
+  background-color:black;
+}
+
+.chord path {
+  fill-opacity: .67;
+
+  stroke-width: .5px;
+}
+
+#circle circle {
+	fill: none;
+	pointer-events: all;
+}
+
+#circle:hover path.fade {
+	display: none;
+}
+
+
+#header {
+    color:#bbb;
+    width:100%;
+    position:absolute;
+    top:0px;
+    opacity:.8;
+    background-color:black;
+}
+
+#head1 {
+}
+
+#head2 {
+    padding-top:8px;
+}
+
+.circle {
+  stroke: #fff;
+}
+
+#graph {
+    top:0px;
+}
+
+#title {
+    font-size:32px;
+}
+
+.selcircle {
+    fill:#000;
+}
+
+
+.link {
+  stroke: #111;
+  stroke-opacity:.2;
+}
+
+
+#cur-track {
+}
+
+
+#album-art {
+    margin-left:6px;
+}
+
+#rp-album-art {
+    width:85px;
+    height:85px;
+    float:left;
+    padding:0;
+}
+
+#rp-genre {
+    width:400px;
+    margin-right:30px;
+}
+
+#rp-song-title {
+    padding-top:44px;
+    margin-right:20px;
+    font-size:16px;
+    overflow:hidden;
+}
+
+#play-buttons {
+    padding-top:16px;
+}
+
+#wrap {
+    max-height:100px;
+    width:100%;
+    opacity:.95;
+}
+
+#footer {
+    padding-top:2px;
+    padding-left:5px;
+    color:white;
+    background-color:black;
+    opacity:.55;
+    font-size:10px;
+    text-align:center;
+    width:100%;
+    position:absolute;
+    bottom:0px;
+}
+
+#colorFlip{
+	position: relative;
+	top:90px;
+	left:50px;
+}
+
+#footer a:link { color:white; }
+#footer a:visited { color:white; }
+</style>
+
+</head>
+<body>
+<div id="header" class="pure-g">
+    <div class="pure-u-3-24" id="album-art">
+      <img width=100 height=100 id='rp-album-art'>
+    </div>
+	<div id="header1" class="pure-u-6-24">
+        <div id='title'> Genre Chord Diagram </div>
+        <div id='big-genre'> </div>	
+	</div>
+	<div id="header2" class="pure-u-14-24" id="cur-track">
+	  <span id='rp-song-title'> </span>
+      <div id='rp-genre'> </div>
+	</div>
+</div>
+
+<div id="footer">
+	<div id="footer-body">
+		Build By <a href="http://www.weibo.com/hanlinhu/">Hanlin Hu</a>
+		Original example Music Popcorn<a href="http://static.echonest.com/popcorn/"> created by <a href="http://twitter.com/plamere">Paul Lamere</a>
+		Powered by <a href="http://Spotify.com">Spotify</a> and <a href="http://the.echonest.com">The Echo Nest</a>.
+    </div>
+</div>
+
+<button id="colorFlip">Flip Colors</button>
+
+<script>
+
+var player = getSpotifyPlayer(); 
+
+var width = 1600,
+    height = 1000,
+    innerRadius = Math.min(width, height) * .41,
+    outerRadius = innerRadius * 1.1,
+	coloring = 'grouped';
+	
+var chord = d3.layout.chord()
+	.padding(.005)
+//    .sortSubgroups(d3.descending)
+//	.sortGroups(d3.ascending)
+	.sortGroups(null)
+	.sortSubgroups(d3.descending);
+    	
+var grey = d3.scale.linear()
+	.domain([0,72])
+	.range([0.2,1]);
+	
+var fontSize = d3.scale.linear()
+	.domain([0,72])
+	.range([1.1,5]);
+	
+var genreMap = {};
+var familyMap = {};
+var famCount = 0;
+
+//var color = d3.scale.category20();	
+var color = d3.scale.ordinal()
+				.domain(d3.range(15))
+				.range(["#00FFFF", "#8B4513", "#8B008B", "#556B2F", "#FF1493", "#008080", "#FFD700", "#FF69B4", "#4B0082", "#00FF00", "#DC143C", "#0000FF", "#FFFF00", "#FFA07A", "#FFE4E1"]);
+
+d3.json("my2.json", 
+	function(error, rawData){
+
+	var filtered1=_.filter(rawData, function(item){
+		return item.name !='pop';
+	});
+
+	var filtered2=_.filter(filtered1, function(item){
+		return item.name !='hip hop';
+	});
+
+	var filtered3=_.filter(filtered2, function(item){
+		return item.name !='blues';
+	});
+
+	var filtered4=_.filter(filtered3, function(item){
+		return item.name !='r&b';
+	});
+
+	var filtered5=_.filter(filtered4, function(item){
+		return item.name !='rock';
+	});
+
+	var filtered6=_.filter(filtered5, function(item){
+		return item.name !='punk';
+	});
+
+	var filtered7=_.filter(filtered6, function(item){
+		return item.name !='electro house';
+	});
+
+	var filtered8=_.filter(filtered7, function(item){
+		return item.name !='latin';
+	});
+
+	var filtered9=_.filter(filtered8, function(item){
+		return item.name !='metal';
+	});
+
+	var filtered10=_.filter(filtered9, function(item){
+		return item.name !='classic';
+	});
+
+	var filtered11=_.filter(filtered10, function(item){
+		return item.name !='folk';
+	});
+
+	var filtered12=_.filter(filtered11, function(item){
+		return item.name !='reggae';
+	});
+
+	var filtered13=_.filter(filtered12, function(item){
+		return item.name !='jazz';
+	});
+
+	var filtered14=_.filter(filtered13, function(item){
+		return item.name !='world';
+	});
+
+	var myArray=_.filter(filtered14, function(item){
+		return item.name !='country';
+	});
+
+	sortFamilyAndName = function(a,b){
+		var familyNameA= a.family[0];
+		var familyNameB= b.family[0];
+		var nameA=a.name;
+		var	nameB=b.name;
+	 if (familyNameA < familyNameB) //sort string ascending
+	  return -1 
+	 if (familyNameA > familyNameB)
+	  return 1
+	 if (familyNameA===familyNameB) {
+			if (nameA < nameB) //sort string ascending
+			return -1 
+			if (nameA > nameB)
+			return 1
+		}
+	 return 0
+	}
+
+	var data=myArray.sort(sortFamilyAndName);
+	
+	var indexByName = d3.map(),
+		  nameByIndex = d3.map(),
+		  matrix = [],
+		  n = 0;
+
+	_.each(data, function(item){
+		 if (!indexByName.has(item.name)) {
+		  nameByIndex.set(n, item.name);
+		  indexByName.set(item.name, n++);
+		}
+	});	
+		
+	_.each(data, function(item){
+			var source = indexByName.get(item.name);
+			var row = matrix[source];
+		if (!row) {
+		 row = matrix[source] = [];
+		 for (var i = -1; ++i < n;) row[i] = 0;
+		 }
+		 var sum=0;
+		_.each(item.sims, function(object){
+				if (indexByName.has(object.name)) {
+					sum += object.similarity;
+				}
+		});
+		_.each(item.sims, function(object){
+				if (indexByName.has(object.name)) {
+					var sim = object.similarity*item.pop/sum;
+					row[indexByName.get(object.name)] = sim;
+				}
+		});
+	});
+
+    _.each(data, function(g, i) {
+	    g.index = i;
+	    g.displayName = g.name.replace('&', '&amp;');
+	    genreMap[g.name] = g;
+	   
+	    if (g.family.length == 0) {
+			g.family.push('other');
+	    }
+
+	    var fam = g.family[0];
+	    if (! (fam in familyMap)) {
+			familyMap[fam] = famCount++;
+	    }
+	    g.group = familyMap[fam] % 15;
+	    g.color = color(g.group);
+    });
+
+		
+	chord.matrix(matrix);
+	
+	var zoom = d3.behavior.zoom()
+    .scaleExtent([0.5, 10])
+    .on("zoom", zoomed);
+
+	
+	var svg = d3.select("body").append("svg")
+			.attr("width", width)
+			.attr("height", height)
+			.call(zoom)
+			.append("g")
+			.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")")
+			.append("g")
+			.attr("id", "circle")
+			
+	svg.append("circle")
+		.attr("r", outerRadius);
+			
+	svg.append("g")
+		.attr("class", "group")
+		.selectAll("path")
+		.data(chord.groups)
+		.enter().append("path")
+		.style("fill", function(d) { return color(data[d.index].group); })
+		.style("opacity",function(d){return grey(d.value);})
+		.style("stroke", function(d) { return color(data[d.index].group); })
+		.style("stroke-width",0.5)
+		.attr("d", d3.svg.arc().innerRadius(innerRadius).outerRadius(outerRadius))
+		.on("mouseover", /*fade(0)*/function(d,i) {mouseover(d, i, chord);})
+		.on("mouseout", fade(1))
+		.on("mousedown", function(d,i) {})
+
+	var g = svg.selectAll(".group")
+				.data(chord.groups)
+				.enter().append("g")
+				.attr("class", "group");
+	
+	g.append("text")
+		.each(function(d) { d.angle = (d.startAngle + d.endAngle) / 2; })
+		.attr("dy", ".35em")
+		.attr("transform", function(d) {
+			return "rotate(" + (d.angle * 180 / Math.PI - 90) + ")"
+				+ "translate(" + (innerRadius + 105) + ")"
+				+ (d.angle > Math.PI ? "rotate(180)" : "");
+			})
+		.style("text-anchor", function(d) { return d.angle > Math.PI ? "end" : null; })
+		.text(function(d) { return nameByIndex.get(d.index); })
+		.style("font-size",function(d){return fontSize(d.value);}+"px")
+		.style("fill",function(d) { return color(data[d.index].group); })
+		.style("opacity",function(d){return grey(d.value);})
+		.on("mouseover", fade(0))
+		.on("mouseout", fade(1))
+		.on("mousedown", function(d, i) {
+             d3.select(this).style("fill", "white"); 
+			})
+		.on("mouseup", function(d, i){
+			d3.select(this).style("fill", function(d) { return color(data[d.index].group);});
+		})
+		.on("click", function(d){
+    	      playNextSong(data[d.index]);
+		});
+
+	svg.append("g")
+		.attr("class", "chord")
+	  .selectAll("path")
+		.data(chord.chords)
+	  .enter().append("path")
+		.attr("d", d3.svg.chord().radius(innerRadius))
+		.style("fill", function(d) { return color(data[d.target.index].group); })
+		.style("stroke", function(d) { return color(data[d.target.index].group); })
+		.style("opacity", 1)
+		.append("title").text(function(d) {
+        return nameByIndex.get(d.source.index)
+          + " → " + nameByIndex.get(d.target.index)
+          + ": " + formatPercent(d.source.value)
+          + "\n" + nameByIndex.get(d.target.index)
+          + " → " + nameByIndex.get(d.source.index)
+          + ": " + formatPercent(d.target.value);
+        });
+
+	flipColors = function() {
+	
+		coloring = coloring == 'random' ? 'grouped' : 'random';
+		
+		svg.select(".chord")
+		.selectAll("path")
+		.transition()
+		.duration(900)
+		.style("fill", function(d) {
+			if (coloring == 'random')
+				return color(d.target.index % 15);
+			else
+				return color(data[d.target.index].group);
+			})
+		.style("stroke", function(d) {
+			if (coloring == 'random')
+				return color(d.target.index % 15);
+			else
+				return color(data[d.target.index].group);
+			});
+		
+		svg.select(".group")
+		.selectAll("path")
+		.transition()
+		.duration(900)
+		.style("fill", function(d) {
+			if (coloring == 'random')
+				return color(d.index % 15);
+			else
+				return color(data[d.index].group);
+			})
+		.style("stroke", function(d) {
+			if (coloring == 'random')
+				return color(d.index % 15);
+			else
+				return color(data[d.index].group);
+			});
+	}
+
+	d3.select("#colorFlip").on("click", function() {
+		flipColors();
+	});
+
+
+	function fade(opacity) {
+	  return function(g, i) {
+		svg.selectAll(".chord path")
+			.filter(function(d) { return d.source.index != i && d.target.index != i; })
+			.transition()
+			.style("opacity", opacity);
+	  };
+	}
+
+	function zoomed() {
+		svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+	}
+	
+	function mouseover(d, i) {
+      d3.selectAll(".chord path")
+        .classed("fade", function(p) {
+        return p.source.index != i
+            && p.target.index != i;
+      });
+    }
+});
+
+
+var formatPercent = d3.format(".1%");
+
+jQuery.ajaxSettings.traditional = true; 
+var curGenre = null;
+var enc = '20JFNN9VWJMRA1L8T';
+var host = 'http://developer.echonest.com/'
+
+function fetchGenrePlaylist(genre) {
+    var url = host + 'api/v4/playlist/static?api_key='  + enc;
+    $.getJSON(url, { 'genre': genre.name, 'format':'json', 
+            'bucket': [ 'id:spotify', 'tracks'], 'limit' : true,
+            'results': 20, 
+            'type':'genre-radio'
+            }, 
+
+            function(data) {
+                $("#results").empty();
+                if (! ('songs' in data.response)) {
+                    info("Can't find that genre");
+                } else {
+                    if (data.response.songs.length > 0) {
+                        genre.songs = data.response.songs;
+                        playNextSong(genre);
+                    }
+                }
+            }).error( 
+                function() { 
+                    info("Sorry, trouble making a playlist for the genre " + genre);
+            } );
+}
+
+function info(s) {
+    console.log('info', s);
+}
+
+
+function playNextSong(genre) {
+    if (!genre.songs) {
+        fetchGenrePlaylist(genre);
+    } else {
+        if (curGenre == genre) {
+            player.next();
+        } else {
+            player.addSongs(genre.songs, true);
+            curGenre = genre;
+        }
+    }
+}
+
+</script>
+</body>
+</html>
